@@ -279,7 +279,9 @@ export const requestPasswordReset = async (req, res) => {
         // await User.findByIdAndUpdate(user._id, { resetPasswordToken: token, resetPasswordExpires: Date.now() + 3600000 }); 
         
         // 3. Construct Email (using Nodemailer)
-        const resetLink = `http://localhost:5173/reset-password?token=${token}&email=${email}`; // Update client URL
+        const FRONTEND_DOMAIN = 'https://global-blog-hub-frontend-ljiq3s5jt-srirams-projects-eb1c82e6.vercel.app';
+
+        const resetLink = `${FRONTEND_DOMAIN}/reset-password?token=${token}&email=${email}`; // Update client URL
 
         const mailContent = `
             <h3>Password Reset Request</h3>
