@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@sendinblue/client": "^3.3.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
