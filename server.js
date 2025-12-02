@@ -18,7 +18,7 @@ const app = express();
 ========================================== */
 
 const allowedOrigins = [
-  "https://global-blog-hub-frontend-git-master-srirams-projects-eb1c82e6.vercel.app/",                                   // Production
+  "https://global-blog-hub-frontend.vercel.app",                                   // Production
   "https://global-blog-hub-frontend-git-master-srirams-projects-eb1c82e6.vercel.app", // Vercel Preview
   "http://localhost:5173",  // Vite Dev
   "http://localhost:3000",  // React Dev
