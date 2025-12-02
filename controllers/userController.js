@@ -230,13 +230,14 @@ export const toggleFollow = async (req, res) => {
 };
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com", // Explicit Gmail host
+    port: 465, // Standard secure port
+    secure: true, // Use SSL/TLS
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS, // Your App Password
+        pass: process.env.SMTP_PASS, 
     },
 });
-
 const sendMail = async (to, subject, html) => {
     const mailOptions = {
         from: process.env.SMTP_USER,
