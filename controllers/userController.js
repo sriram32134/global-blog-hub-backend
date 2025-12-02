@@ -249,100 +249,99 @@ const sendMail = async (to, subject, html) => {
 
 export const requestPasswordReset = async (req, res) => {
     const { email } = req.body;
-    
-    // Check if the input is meant to be a phone number (based on your frontend toggle)
-    // NOTE: In a real app, this logic would verify the user's input type based on the field provided.
-    // For this demonstration, we'll assume the client always sends the EMAIL for recovery, 
-    // and that the 'phone number' option is just a frontend placeholder/mock.
 
     if (!email) {
-        return res.status(400).json({ success: false, message: "Email or Phone number is required." });
+        return res.status(400).json({ success: false, message: "Email is required." });
     }
 
     try {
-        // 1. Find User (assuming the user is trying to reset via email)
+        // 1. Find the user
         const user = await User.findOne({ email });
 
         if (!user) {
-            // NOTE: Security Best Practice: Return a generic success message even if the user isn't found
-            // to prevent email enumeration attacks.
-            return res.json({ success: true, message: "If an account is associated with that email, a recovery link has been sent." });
+            return res.json({ 
+                success: true, 
+                message: "If an account exists, a recovery link has been sent." 
+            });
         }
 
-        // 2. [ACTUAL LOGIC]: Generate Token and save to DB
+        // 2. Generate token
         const token = crypto.randomBytes(32).toString('hex');
-        // await User.findByIdAndUpdate(user._id, { resetPasswordToken: token, resetPasswordExpires: Date.now() + 3600000 }); 
-        
-        // 3. Construct Email (using Nodemailer)
-        const FRONTEND_DOMAIN = 'https://global-blog-hub-frontend.vercel.app';
 
-        const resetLink = `${FRONTEND_DOMAIN}/reset-password?token=${token}&email=${email}`; // Update client URL
+        // 3. Save token to DB (IMPORTANT!)
+        await User.findByIdAndUpdate(user._id, {
+            resetPasswordToken: token,
+            resetPasswordExpires: Date.now() + 3600000, // 1 hour
+        });
 
+        // 4. Build reset link
+        const FRONTEND_DOMAIN = "https://global-blog-hub-frontend-git-master-srirams-projects-eb1c82e6.vercel.app/";
+        const resetLink = `${FRONTEND_DOMAIN}/reset-password?token=${token}&email=${email}`;
+
+        // 5. Email content
         const mailContent = `
             <h3>Password Reset Request</h3>
             <p>Hello ${user.name},</p>
-            <p>You requested a password reset for your Global Blog Hub account.</p>
-            <p>Please click on the link below to complete the process:</p>
-            <a href="${resetLink}">Reset Password Link</a>
-            <p>If you did not request this, please ignore this email.</p>
-            <small>This link will expire in one hour.</small>
+            <p>You requested a password reset.</p>
+            <a href="${resetLink}">Click here to reset your password.</a>
+            <p>This link expires in 1 hour.</p>
         `;
 
+        // 6. Send the email
         await sendMail(
             user.email,
             "[Global Blog Hub] Password Reset Request",
             mailContent
         );
 
-        res.json({ success: true, message: "Password recovery email sent successfully." });
+        res.json({ success: true, message: "Password reset email sent." });
 
     } catch (error) {
         console.error("Password Reset Error:", error);
-        res.status(500).json({ success: false, message: "Failed to process reset request. Server error." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Server error while processing reset request." 
+        });
     }
 };
+
 
 export const resetPasswordFinal = async (req, res) => {
     const { email, token, newPassword } = req.body;
 
     if (!email || !token || !newPassword) {
-        return res.status(400).json({ success: false, message: "Missing email, token, or new password." });
+        return res.status(400).json({ success: false, message: "Missing required fields." });
     }
 
     try {
-        // 1. Find the user based on email AND the reset token/expiry
-        // NOTE: Since you did not implement the token saving in the DB, 
-        // this logic is commented out, but it shows the correct concept.
-        
-        // const user = await User.findOne({ 
-        //     email,
-        //     resetPasswordToken: token,
-        //     resetPasswordExpires: { $gt: Date.now() } // Check if token is not expired
-        // });
-
-        // TEMPORARY MOCK LOGIC: We will just find the user by email for testing purposes
-        const user = await User.findOne({ email });
+        // 1. Verify token & expiry
+        const user = await User.findOne({
+            email,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
 
         if (!user) {
-            // This is the error the frontend likely caught ("Link may have expired")
-            return res.status(400).json({ success: false, message: "Reset failed: Invalid or expired link." });
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid or expired reset link." 
+            });
         }
-        
-        // 2. Hash the new password
+
+        // 2. Update password
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
 
-        // 3. Clear the token fields (Conceptually, for a real app)
-        // user.resetPasswordToken = undefined;
-        // user.resetPasswordExpires = undefined;
+        // 3. Clear reset token
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
 
-        // 4. Save the updated password
         await user.save();
 
-        res.json({ success: true, message: "Password updated successfully! You can now log in." });
+        res.json({ success: true, message: "Password reset successful!" });
 
     } catch (error) {
         console.error("Final Reset Error:", error);
-        res.status(500).json({ success: false, message: "An unexpected error occurred during password reset." });
+        res.status(500).json({ success: false, message: "Server error." });
     }
 };
